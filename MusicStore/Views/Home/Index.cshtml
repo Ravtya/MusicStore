@@ -1,0 +1,118 @@
+@using System.Globalization
+@model TrackListViewModel
+@{
+    ViewData["Title"] = "Tracks";
+    var query = Model.Query;
+    var likesFormatted = query.AverageLikes.ToString("0.0", CultureInfo.InvariantCulture);
+}
+
+<div class="container-lg py-3">
+
+    <form method="get" asp-action="Index" id="parametersForm" class="row g-3 justify-content-center">
+
+        <input type="hidden" name="page" value="@query.Page" id="pageInput"/>
+        <input type="hidden" name="infiniteScroll"
+               value="@query.InfiniteScroll.ToString().ToLower()" id="infiniteScrollInput"/>
+        <input type="hidden" name="averageLikes" id="averageLikesInput" value="@likesFormatted"/>
+
+        <div class="col-12 col-sm-6 col-lg-auto">
+            <label class="form-label">Locale</label>
+            <select name="locale" class="form-select">
+                @foreach (var loc in Model.Locales)
+                {
+                    <option value="@loc" selected="@(loc == query.Locale)">@loc</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-auto">
+            <label class="form-label">Seed</label>
+            <div class="input-group">
+                <input type="number" name="seed" id="seedInput" class="form-control" value="@query.Seed"/>
+
+                <button type="submit"
+                        class="btn btn-outline-secondary"
+                        formaction="@Url.Action("Randomize")"
+                        title="Random seed">
+                    <i class="bi bi-shuffle"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-auto">
+            <label class="form-label">
+                Likes (<span id="likesValue">@likesFormatted</span>)
+            </label>
+            <input type="range" class="form-range" id="likesSlider"
+                   min="0" max="10" step="0.1" value="@likesFormatted"/>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-auto d-flex align-items-end">
+            <button type="button" id="toggleViewBtn" class="btn btn-outline-primary w-100">
+                @(query.InfiniteScroll ? "Page View" : "Gallery View")
+            </button>
+        </div>
+    </form>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-12 col-lg-10">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0 w-100">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Song</th>
+                        <th>Artist</th>
+                        <th>Album</th>
+                        <th>Genre</th>
+                    </tr>
+                    </thead>
+                    <tbody id="trackTableBody">
+                    @await Html.PartialAsync("_TrackRows", Model.Tracks)
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (!query.InfiniteScroll)
+    {
+        <nav class="mt-3">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(query.Page == 1 ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-locale="@query.Locale"
+                       asp-route-averageLikes="@likesFormatted"
+                       asp-route-seed="@query.Seed"
+                       asp-route-page="@(query.Page - 1)"
+                       asp-route-infiniteScroll="@query.InfiniteScroll">&laquo; Previous</a>
+                </li>
+
+                <li class="page-item active">
+                    <span class="page-link">@query.Page</span>
+                </li>
+
+                <li class="page-item">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-locale="@query.Locale"
+                       asp-route-averageLikes="@likesFormatted"
+                       asp-route-seed="@query.Seed"
+                       asp-route-page="@(query.Page + 1)"
+                       asp-route-infiniteScroll="@query.InfiniteScroll">Next &raquo;</a>
+                </li>
+            </ul>
+        </nav>
+    }
+    else
+    {
+        <div id="scrollSentinel" class="text-center py-3"
+             data-current-page="@query.Page"
+             data-base-url="@Url.Action("LoadMore", "Home", new { locale = query.Locale, seed = query.Seed, averageLikes = likesFormatted })&amp;page=">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+</div>
